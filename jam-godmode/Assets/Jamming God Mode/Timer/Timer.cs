@@ -21,16 +21,23 @@ using UnityEngine.UI;
  * Unpause()...........Resumes counting
  * PauseToggle().......Stops/resumes counting
  * Stop()..............Resets time and stops counting
- * Restart()...........Resets time without starting counting
+ * Restart()...........Resets time without stopping counting
  */
 
+[AddComponentMenu("Godmode/Timer")]
 public class Timer : MonoBehaviour {
 
     //Parameters
+    [Header("Timer Options")]
+    [Tooltip("Starting timer value")]
     public float TIMER_STARTING_VALUE = 10;
+    [Tooltip("Time multiplier. [1=Count up] [-1=Count down] [2=Double speed count up]")]
     public float TIMER_SCALE = -1;
+    [Tooltip("[raw=302.69] [truncated=302] [rounded=303] [fancy=5:02]")]
     public string DISPLAY_MODE = "fancy";
     //Public attributes
+    [Space(10)]
+    [Header("Timer values")]
     public float time;
     public bool running = false;
     //Private attributes
