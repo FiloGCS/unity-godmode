@@ -5,7 +5,6 @@ using UnityEngine;
 public class SplineInspector : Editor {
 
     private const int lineSteps = 10;
-    private const float directionScale = 0.5f;
     private static Color[] modeColors = {
         Color.white,
         Color.yellow,
@@ -15,6 +14,13 @@ public class SplineInspector : Editor {
     private Spline spline;
     private Transform handleTransform;
     private Quaternion handleRotation;
+
+    public bool showStress = false;
+    float minStress = Mathf.Infinity;
+    float maxStress = 0.0f;
+    float stressTolerance = 3f;
+
+    bool showTangents = false;
 
     private void OnSceneGUI() {
         spline = target as Spline;
@@ -31,16 +37,88 @@ public class SplineInspector : Editor {
             Handles.color = Color.gray;
             Handles.DrawLine(p0, p1);
             Handles.DrawLine(p2, p3);
-
-            Handles.DrawBezier(p0, p3, p1, p2, Color.white, null, 2f);
+            
             p0 = p3;
         }
-        //ShowDirections();
+
+        UpdateStress();
+        float n = spline.ControlPointCount * 10;
+        for (int i = 0; i < n; i++) {
+            float v = spline.GetVelocity(i / n).magnitude;
+            if (showStress) {
+                Handles.color = Color.Lerp(Color.green, Color.red, Mathf.Clamp01(v/minStress * 1/stressTolerance));
+            } else {
+                Handles.color = Color.white;
+            }
+            Handles.DrawLine(spline.GetPoint(i / n), spline.GetPoint((i + 1) / n));
+        }
+        if (showTangents) {
+            ShowDirections();
+        }
+    }
+    
+    public void UpdateStress() {
+        float n = spline.ControlPointCount * 10;
+        if (showStress) {
+            for (int i = 0; i < n; i++) {
+                float v = spline.GetVelocity(i / n).magnitude;
+                if (v < minStress) {
+                    minStress = v;
+                }
+                if (v > maxStress) {
+                    maxStress = v;
+                }
+            }
+        }
     }
 
     bool showControls = true;
     public override void OnInspectorGUI() {
         spline = target as Spline;
+
+        // VISUALIZING OPTIONS
+        //Stress
+        EditorGUI.BeginChangeCheck();
+        showStress = GUILayout.Toggle(showStress, "Show Stress");
+        if (EditorGUI.EndChangeCheck()) {
+            EditorUtility.SetDirty(spline);
+        }
+        if (showStress) {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Stress Tolerance");
+            EditorGUI.BeginChangeCheck();
+            stressTolerance = EditorGUILayout.Slider(stressTolerance, 1, 10);
+            if (EditorGUI.EndChangeCheck()) {
+                EditorUtility.SetDirty(spline);
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+        //Tangents
+        EditorGUI.BeginChangeCheck();
+        showTangents = GUILayout.Toggle(showTangents, "Show Tangents");
+        if (EditorGUI.EndChangeCheck()) {
+            EditorUtility.SetDirty(spline);
+        }
+        if (showTangents) {
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Tangents per segment");
+            EditorGUI.BeginChangeCheck();
+            showTangentsDensity = EditorGUILayout.IntSlider(showTangentsDensity, 1, 25);
+            if (EditorGUI.EndChangeCheck()) {
+                EditorUtility.SetDirty(spline);
+            }
+            EditorGUILayout.EndHorizontal();
+
+            EditorGUILayout.BeginHorizontal();
+            EditorGUILayout.LabelField("Tangent Lenght");
+            EditorGUI.BeginChangeCheck();
+            showTangentsLength = EditorGUILayout.FloatField(showTangentsLength);
+            if (EditorGUI.EndChangeCheck()) {
+                EditorUtility.SetDirty(spline);
+            }
+            EditorGUILayout.EndHorizontal();
+        }
+
         EditorGUI.BeginChangeCheck();
         bool loop = EditorGUILayout.Toggle("Force Loop", spline.Loop);
         if (EditorGUI.EndChangeCheck()) {
@@ -71,21 +149,36 @@ public class SplineInspector : Editor {
             GUILayout.EndHorizontal();
             // Point Position
             EditorGUI.BeginChangeCheck();
-            Vector3 point = EditorGUILayout.Vector3Field("Point Position", spline.GetControlPoint(i));
+            Vector3 point = EditorGUILayout.Vector3Field("Position", spline.GetControlPoint(i));
             if (EditorGUI.EndChangeCheck()) {
                 Undo.RecordObject(spline, "Move Point");
                 EditorUtility.SetDirty(spline);
                 spline.SetControlPoint(i, point);
             }
+            //Point controllers
+            if (i > 0) {
+                EditorGUI.BeginChangeCheck();
+                Vector3 handler1 = EditorGUILayout.Vector3Field("Arriving Tangent", spline.GetControlPoint(i - 1));
+                if (EditorGUI.EndChangeCheck()) {
+                    Undo.RecordObject(spline, "Move Handler");
+                    EditorUtility.SetDirty(spline);
+                    spline.SetControlPoint(i - 1, handler1);
+                }
+            }
+            if (i < spline.ControlPointCount - 1) {
+                EditorGUI.BeginChangeCheck();
+                Vector3 handler2 = EditorGUILayout.Vector3Field("Leaving Tangent", spline.GetControlPoint(i + 1));
+                if (EditorGUI.EndChangeCheck()) {
+                    Undo.RecordObject(spline, "Move Handler");
+                    EditorUtility.SetDirty(spline);
+                    spline.SetControlPoint(i + 1, handler2);
+                }
+            }
+
             GUI.backgroundColor = Color.white;
             GUILayout.EndVertical();
             EditorGUILayout.Separator();
         }
-        /*
-        if(selectedIndex >= 0 && selectedIndex < spline.ControlPointCount) {
-            DrawSelectedPointInspector();
-        }
-        */
         GUILayout.BeginHorizontal();
         if(GUILayout.Button("Add Segment")) {
             Undo.RecordObject(spline, "Add Spline Segment");
@@ -103,38 +196,21 @@ public class SplineInspector : Editor {
             Undo.RecordObject(spline, "Reset Spline");
             EditorUtility.SetDirty(spline);
             spline.Reset();
+        }
 
-        }
-    }
-
-    private void DrawSelectedPointInspector() {
-        GUILayout.Label("Selected Point");
-        EditorGUI.BeginChangeCheck();
-        Vector3 point = EditorGUILayout.Vector3Field("Position", spline.GetControlPoint(selectedIndex));
-        if (EditorGUI.EndChangeCheck()) {
-            Undo.RecordObject(spline, "Move Point");
-            EditorUtility.SetDirty(spline);
-            spline.SetControlPoint(selectedIndex, point);
-        }
-        EditorGUI.BeginChangeCheck();
-        BezierControlPointMode mode = (BezierControlPointMode)EditorGUILayout.EnumPopup("Mode", spline.GetControlPointMode(selectedIndex));
-        if (EditorGUI.EndChangeCheck()) {
-            Undo.RecordObject(spline, "Change Point Mode");
-            spline.SetControlPointMode(selectedIndex, mode);
-            EditorUtility.SetDirty(spline);
-        }
     }
 
 
-    private const int stepsPerCurve = 3;
+    private int showTangentsDensity = 3;
+    private float showTangentsLength = 0.5f;
     private void ShowDirections() {
-        Handles.color = Color.green;
+        Handles.color = Color.cyan;
         Vector3 point = spline.GetPoint(0f);
-        Handles.DrawLine(point, point + spline.GetDirection(0f) * directionScale);
-        int steps = stepsPerCurve * spline.CurveCount;
+        Handles.DrawLine(point, point + spline.GetDirection(0f) * showTangentsLength);
+        int steps = showTangentsDensity * spline.CurveCount;
         for (int i = 1; i <= steps; i++) {
             point = spline.GetPoint(i / (float)steps);
-            Handles.DrawLine(point, point + spline.GetDirection(i / (float)steps) * directionScale);
+            Handles.DrawLine(point, point + spline.GetDirection(i / (float)steps) * showTangentsLength);
         }
     }
 
@@ -145,9 +221,7 @@ public class SplineInspector : Editor {
     private Vector3 ShowPoint(int index) {
         Vector3 point = handleTransform.TransformPoint(spline.GetControlPoint(index));
         float size = HandleUtility.GetHandleSize(point);
-        if (index == 0) {
-            Handles.color = Color.green;
-        } else if (index % 3 == 0) {
+        if (index % 3 == 0) {
             Handles.color = Color.white;
             Handles.ArrowHandleCap(0, point, Quaternion.identity, 1f, EventType.Layout);
         } else {
