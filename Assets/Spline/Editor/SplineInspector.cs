@@ -15,6 +15,9 @@ public class SplineInspector : Editor {
     private Transform handleTransform;
     private Quaternion handleRotation;
 
+    float previewT = 0f;
+    bool showPreview = false;
+
     public bool showStress = false;
     float minStress = Mathf.Infinity;
     float maxStress = 0.0f;
@@ -55,6 +58,13 @@ public class SplineInspector : Editor {
         if (showTangents) {
             ShowDirections();
         }
+
+        if (showPreview) {
+            Vector3 point = spline.GetPoint(previewT);
+            float size = HandleUtility.GetHandleSize(point);
+            Handles.color = Color.red;
+            Handles.DotHandleCap(0, point, Quaternion.identity,size*0.1f, EventType.Repaint);
+        }
     }
     
     public void UpdateStress() {
@@ -77,15 +87,28 @@ public class SplineInspector : Editor {
         spline = target as Spline;
 
         // VISUALIZING OPTIONS
+        //Preview position
+        EditorGUI.BeginChangeCheck();
+        showPreview = GUILayout.Toggle(showPreview, "Preview value");
+        if (EditorGUI.EndChangeCheck()) {
+            EditorUtility.SetDirty(spline);
+        }
+        if (showPreview) {
+            EditorGUI.BeginChangeCheck();
+            previewT = EditorGUILayout.Slider(previewT, 0, 1);
+            if (EditorGUI.EndChangeCheck()) {
+                EditorUtility.SetDirty(spline);
+            }
+        }
         //Stress
         EditorGUI.BeginChangeCheck();
-        showStress = GUILayout.Toggle(showStress, "Show Stress");
+        showStress = GUILayout.Toggle(showStress, "Show Velocity");
         if (EditorGUI.EndChangeCheck()) {
             EditorUtility.SetDirty(spline);
         }
         if (showStress) {
             EditorGUILayout.BeginHorizontal();
-            EditorGUILayout.LabelField("Stress Tolerance");
+            EditorGUILayout.LabelField(new GUIContent("Max Velocity Ratio","Points with velocity this times faster than the lowest velocity in the spline will be coloured red"));
             EditorGUI.BeginChangeCheck();
             stressTolerance = EditorGUILayout.Slider(stressTolerance, 1, 10);
             if (EditorGUI.EndChangeCheck()) {
