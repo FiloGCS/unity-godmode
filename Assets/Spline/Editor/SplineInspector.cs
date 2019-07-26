@@ -24,6 +24,7 @@ public class SplineInspector : Editor {
     float stressTolerance = 3f;
 
     bool showTangents = false;
+    bool tangentsInWorldSpace = true;
 
     private void OnSceneGUI() {
         spline = target as Spline;
@@ -39,6 +40,8 @@ public class SplineInspector : Editor {
 
             Handles.color = Color.gray;
             Handles.DrawLine(p0, p1);
+
+
             Handles.DrawLine(p2, p3);
             
             p0 = p3;
@@ -62,7 +65,7 @@ public class SplineInspector : Editor {
         if (showPreview) {
             Vector3 point = spline.GetPoint(previewT);
             float size = HandleUtility.GetHandleSize(point);
-            Handles.color = Color.red;
+            Handles.color = Color.green;
             Handles.DotHandleCap(0, point, Quaternion.identity,size*0.1f, EventType.Repaint);
         }
     }
@@ -142,6 +145,14 @@ public class SplineInspector : Editor {
             EditorGUILayout.EndHorizontal();
         }
 
+        EditorGUILayout.Separator();
+
+        //RelativeTangentCoordinates
+        EditorGUI.BeginChangeCheck();
+        tangentsInWorldSpace = GUILayout.Toggle(tangentsInWorldSpace, "Show tangent coordinates in world space");
+        if (EditorGUI.EndChangeCheck()) {
+            EditorUtility.SetDirty(spline);
+        }
         EditorGUI.BeginChangeCheck();
         bool loop = EditorGUILayout.Toggle("Force Loop", spline.Loop);
         if (EditorGUI.EndChangeCheck()) {
@@ -180,21 +191,41 @@ public class SplineInspector : Editor {
             }
             //Point controllers
             if (i > 0) {
-                EditorGUI.BeginChangeCheck();
-                Vector3 handler1 = EditorGUILayout.Vector3Field("Arriving Tangent", spline.GetControlPoint(i - 1));
-                if (EditorGUI.EndChangeCheck()) {
-                    Undo.RecordObject(spline, "Move Handler");
-                    EditorUtility.SetDirty(spline);
-                    spline.SetControlPoint(i - 1, handler1);
+                if (!tangentsInWorldSpace) {
+                    EditorGUI.BeginChangeCheck();
+                    Vector3 handler1 = EditorGUILayout.Vector3Field("Arriving Tangent", spline.GetControlPoint(i - 1)-spline.GetControlPoint(i));
+                    if (EditorGUI.EndChangeCheck()) {
+                        Undo.RecordObject(spline, "Move Handler");
+                        EditorUtility.SetDirty(spline);
+                        spline.SetControlPoint(i - 1, handler1 + spline.GetControlPoint(i));
+                    }
+                } else {
+                    EditorGUI.BeginChangeCheck();
+                    Vector3 handler1 = EditorGUILayout.Vector3Field("Arriving Tangent", spline.GetControlPoint(i - 1));
+                    if (EditorGUI.EndChangeCheck()) {
+                        Undo.RecordObject(spline, "Move Handler");
+                        EditorUtility.SetDirty(spline);
+                        spline.SetControlPoint(i - 1, handler1);
+                    }
                 }
             }
             if (i < spline.ControlPointCount - 1) {
-                EditorGUI.BeginChangeCheck();
-                Vector3 handler2 = EditorGUILayout.Vector3Field("Leaving Tangent", spline.GetControlPoint(i + 1));
-                if (EditorGUI.EndChangeCheck()) {
-                    Undo.RecordObject(spline, "Move Handler");
-                    EditorUtility.SetDirty(spline);
-                    spline.SetControlPoint(i + 1, handler2);
+                if (!tangentsInWorldSpace) {
+                    EditorGUI.BeginChangeCheck();
+                    Vector3 handler2 = EditorGUILayout.Vector3Field("Leaving Tangent", spline.GetControlPoint(i + 1) - spline.GetControlPoint(i));
+                    if (EditorGUI.EndChangeCheck()) {
+                        Undo.RecordObject(spline, "Move Handler");
+                        EditorUtility.SetDirty(spline);
+                        spline.SetControlPoint(i + 1, handler2 + spline.GetControlPoint(i));
+                    }
+                } else {
+                    EditorGUI.BeginChangeCheck();
+                    Vector3 handler2 = EditorGUILayout.Vector3Field("Leaving Tangent", spline.GetControlPoint(i + 1));
+                    if (EditorGUI.EndChangeCheck()) {
+                        Undo.RecordObject(spline, "Move Handler");
+                        EditorUtility.SetDirty(spline);
+                        spline.SetControlPoint(i + 1, handler2);
+                    }
                 }
             }
 
@@ -245,7 +276,11 @@ public class SplineInspector : Editor {
         Vector3 point = handleTransform.TransformPoint(spline.GetControlPoint(index));
         float size = HandleUtility.GetHandleSize(point);
         if (index % 3 == 0) {
-            Handles.color = Color.white;
+            if(index == selectedIndex) {
+                Handles.color = Color.yellow;
+            } else {
+                Handles.color = Color.white;
+            }
             Handles.ArrowHandleCap(0, point, Quaternion.identity, 1f, EventType.Layout);
         } else {
             Handles.color = modeColors[(int)spline.GetControlPointMode(index)];
