@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+[AddComponentMenu("Godmode/FairRandom")]
 public class FairRandom<T> {
 
     public T[] elements;
