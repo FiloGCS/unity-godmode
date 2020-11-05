@@ -1,0 +1,1 @@
+Jam Godmode is a collection of unity snippets and tools to speed up your game development.
