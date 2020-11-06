@@ -15,7 +15,7 @@ public class Selfdestruct : MonoBehaviour {
     /// All the dependents will be destroyed whenever the Kill() function is called.
     /// </summary>
     [SerializeField]
-    private List<GameObject> dependents;
+    private List<GameObject> dependents = null;
 
     private void Start() {
         if (lifetime > 0) {
@@ -26,7 +26,7 @@ public class Selfdestruct : MonoBehaviour {
     /// <summary>
     /// Waits for the specified amount of time and destroys the GameObject containing this script.
     /// </summary>
-    /// <param name="ttl">The amount of time to wait before selfdestructiong</param>
+    /// <param name="ttl">The amount of time to wait before selfdestructing</param>
     public void TimedKill(float ttl) {
         StartCoroutine(WaitAndKill(ttl));
     }
