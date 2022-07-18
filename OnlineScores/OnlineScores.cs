@@ -21,7 +21,7 @@ public class OnlineScores : MonoBehaviour {
         form.AddField("score", score);
         using(UnityWebRequest request = UnityWebRequest.Post(URL_POST_SCORE, form)) {
             yield return request.SendWebRequest();
-            if(request.isNetworkError || request.isHttpError) {
+            if((request.result == UnityWebRequest.Result.ConnectionError) || (request.result == UnityWebRequest.Result.ProtocolError)) {
                 Debug.Log(request.error);
             } else {
                 Debug.Log(request.downloadHandler.text);
@@ -33,7 +33,7 @@ public class OnlineScores : MonoBehaviour {
     IEnumerator GetAllScoresCoroutine() {
         using (UnityWebRequest request = UnityWebRequest.Get(URL_GET_ALL_SCORES)) {
             yield return request.SendWebRequest();
-            if(request.isNetworkError || request.isHttpError) {
+            if((request.result == UnityWebRequest.Result.ConnectionError) || (request.result == UnityWebRequest.Result.ProtocolError)) {
                 Debug.Log(request.error);
             } else {
                 Debug.Log(request.downloadHandler.text);
