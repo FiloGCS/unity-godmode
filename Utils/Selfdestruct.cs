@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿//@FiloGCS 2022, all rights reserved. Don't do illegal shit with this.
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 

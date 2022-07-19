@@ -1,13 +1,17 @@
-﻿using System.Collections;
+﻿//@FiloGCS 2022, all rights reserved. Don't do illegal shit with this.
+
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-
-[AddComponentMenu("Godmode/FairRandom")]
+/// <summary>
+/// Holds a list of elements that can be randomly retrieved with bad luck protection.
+/// </summary>
+/// <typeparam name="T"></typeparam>
 public class FairRandom<T> {
 
     public T[] elements;
     public float[] w;
-    public float factor = 2.0f;
+    public float factor = 0.5f;
 
     public FairRandom(T[] elements) {
         this.elements = elements;
@@ -17,7 +21,7 @@ public class FairRandom<T> {
         }
     }
 
-    public T GetRandomElement() {
+    public T GetRandom() {
         //Get a weighted random value
         float random = Random.Range(0.0f, 1.0f);
         int r = 0;
@@ -29,7 +33,7 @@ public class FairRandom<T> {
             random -= w[i];
         }
         //Distribute its chance between the others
-        float amountToShare = w[r] / factor;
+        float amountToShare = w[r] * factor;
         float share = amountToShare / (w.Length - 1);
         for (int i = 0; i < w.Length; i++) {
             if (i == r) {
@@ -39,6 +43,14 @@ public class FairRandom<T> {
             }
         }
         return elements[r];
+    }
+
+    public float GetAverageWeight() {
+        float sum = 0f;
+        foreach (float weight in w) {
+            sum += weight;
+        }
+        return (sum / (float)w.Length);
     }
 
 }
