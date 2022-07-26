@@ -7,13 +7,13 @@ using UnityEngine;
 /// Holds a list of elements that can be randomly retrieved with bad luck protection.
 /// </summary>
 /// <typeparam name="T"></typeparam>
-public class FairRandom<T> {
+public class RandomContainer<T> {
 
     public T[] elements;
     public float[] w;
     public float factor = 0.5f;
 
-    public FairRandom(T[] elements) {
+    public RandomContainer(T[] elements) {
         this.elements = elements;
         w = new float[elements.Length];
         for (int i = 0; i < w.Length; i++) {

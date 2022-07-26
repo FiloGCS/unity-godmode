@@ -49,7 +49,7 @@ public class Mathgm
         }
         return solutions;
     }
-    //TODO Sample Parabola
+
     //Parabola
     public static float GetParabolaTravelDuration(float h, float v0, float g) {
         List<float> solution = new List<float>();
